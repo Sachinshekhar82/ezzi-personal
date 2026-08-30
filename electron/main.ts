@@ -521,9 +521,12 @@ function setWindowDimensions(width: number, height: number, source: string): voi
       );
     }
 
-    const effectiveContentWidth = Math.max(600, Math.max(baseWidth - 32, state.codeDesiredWidth));
-    const newWidth = Math.max(620, Math.min(effectiveContentWidth + 32, maxWidth));
-    const newHeight = Math.max(520, Math.ceil(height));
+    const effectiveContentWidth = Math.max(620, Math.max(baseWidth - 32, state.codeDesiredWidth));
+    const maxScreenHeight = Math.max(400, workArea.height - 100);
+    const maxScreenWidth = Math.max(500, workArea.width - 60);
+
+    const newWidth = Math.min(Math.max(640, effectiveContentWidth + 32), Math.min(840, maxScreenWidth));
+    const newHeight = Math.min(Math.max(500, Math.ceil(height)), Math.min(620, maxScreenHeight));
 
     console.log(
       '[setWindowDimensions] effectiveContentWidth:',

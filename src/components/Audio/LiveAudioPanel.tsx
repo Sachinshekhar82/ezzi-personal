@@ -39,7 +39,7 @@ export const LiveAudioPanel: React.FC<LiveAudioPanelProps> = ({
   };
 
   return (
-    <div className={`w-full rounded-xl bg-[#131922]/90 backdrop-blur-md border border-white/10 shadow-2xl p-2.5 text-xs text-white/90 transition-all duration-200 ${className}`}>
+    <div className={`w-full rounded-xl bg-black/25 backdrop-blur-sm border border-white/10 shadow-xl p-2.5 text-xs text-white transition-all duration-200 ${className}`}>
       {/* Header bar */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">

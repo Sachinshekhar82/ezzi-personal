@@ -1,11 +1,11 @@
-import { type AuthenticatedUser, SubscriptionLevel } from '@shared/api.ts';
+import { type AuthenticatedUser } from '@shared/api.ts';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { LiveAudioProvider, useLiveAudio } from '../contexts/LiveAudioContext';
 import { ScreenshotProvider } from '../contexts/ScreenshotContext';
 import { SettingsProvider } from '../contexts/SettingsContext';
 import { SolutionProvider, useSolutionContext } from '../contexts/SolutionContext';
 import { SubscriptionProvider } from '../contexts/SubscriptionContext';
-import { LiveAudioProvider, useLiveAudio } from '../contexts/LiveAudioContext';
 import { useToast } from '../contexts/toast';
 import { AppModeLayoutProvider } from '../layouts';
 import { QueuePage, SolutionsPage } from '.';
@@ -96,48 +96,52 @@ const SubscribedAppContent: React.FC = () => {
     };
   }, [clearAll, showToast, toggleListening]);
 
-  const [opacity, setOpacity] = useState<number>(0.82);
+  // 2% default opacity for ultra-sheer see-through background
+  const [opacity, setOpacity] = useState<number>(0.02);
 
   const cycleOpacity = () => {
-    setOpacity((prev) => (prev === 0.82 ? 0.6 : prev === 0.6 ? 0.45 : prev === 0.45 ? 0.95 : 0.82));
+    setOpacity((prev) => (prev === 0.02 ? 0.15 : prev === 0.15 ? 0.35 : prev === 0.35 ? 0.7 : 0.02));
   };
 
   return (
     <AppModeLayoutProvider>
       <div
         ref={containerRef}
-        style={{ backgroundColor: `rgba(15, 20, 28, ${opacity})` }}
-        className="min-h-0 backdrop-blur-2xl rounded-2xl border border-white/20 shadow-2xl overflow-hidden font-sans transition-colors duration-200"
+        style={{
+          backgroundColor: `rgba(10, 15, 25, ${opacity})`,
+        }}
+        className="w-full max-h-[88vh] flex flex-col rounded-2xl border border-white/10 shadow-2xl overflow-hidden font-sans transition-colors duration-200"
       >
-        {/* Draggable Header */}
+        {/* Draggable Ultra-Thin Header */}
         <div
           style={{ WebkitAppRegion: 'drag' } as any}
-          className="flex items-center justify-between px-3.5 py-2 bg-[#171E28]/70 border-b border-white/10 select-none cursor-move"
+          className="flex items-center justify-between px-3 py-1.5 bg-black/20 border-b border-white/10 select-none cursor-move shrink-0"
         >
-          <div className="flex items-center gap-2 text-white/90 text-xs font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Ezzi Live Interview Assistant</span>
-            <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded font-mono">
+          <div className="flex items-center gap-2 text-white text-xs font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,1)]">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+            <span>Ezzi Live Assistant</span>
+            <span className="text-[10px] text-blue-300 bg-blue-500/20 px-1.5 py-0.5 rounded font-mono border border-blue-400/30">
               Gemini 2.5 Flash
             </span>
           </div>
           <div
             style={{ WebkitAppRegion: 'no-drag' } as any}
-            className="flex items-center gap-2 text-[10px] text-white/60"
+            className="flex items-center gap-2 text-[10px] text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]"
           >
-            {/* Transparency toggle */}
+            {/* Transparency / Ghost Mode Toggle */}
             <button
               onClick={cycleOpacity}
-              className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/80 text-[10px] font-medium transition-colors"
-              title="Click to cycle transparency (Background Visibility)"
+              className="px-2 py-0.5 rounded-full bg-black/30 hover:bg-black/50 text-white text-[10px] font-medium border border-white/20 transition-all active:scale-95 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]"
+              title="Click to cycle transparency"
             >
-              Opacity: {Math.round(opacity * 100)}%
+              👻 Opacity: {Math.round(opacity * 100)}%
             </button>
-            <span className="opacity-50">Ctrl+B</span>
+            <span className="opacity-70 text-white font-mono text-[9px] bg-black/40 px-1.5 py-0.5 rounded">Ctrl+B</span>
           </div>
         </div>
 
-        <div className="p-1">
+        {/* Scrollable Body: Full Vertical & Horizontal Scroll */}
+        <div className="flex-1 overflow-y-auto overflow-x-auto p-2 scrollbar-thin scrollbar-thumb-white/30 scrollbar-track-transparent select-text">
           {view === 'queue' ? (
             <QueuePage setView={setView} />
           ) : view === 'solutions' ? (

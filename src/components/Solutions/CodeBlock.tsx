@@ -103,9 +103,13 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, showCopyButton = 
           padding: '1rem',
           paddingRight: showCopyButton ? '3rem' : '1rem',
           overflowX: 'auto',
-          backgroundColor: 'rgba(22, 27, 34, 0.8)',
+          overflowY: 'auto',
+          maxHeight: '360px',
+          borderRadius: '0.75rem',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          backgroundColor: 'rgba(10, 15, 25, 0.4)',
           fontFamily: 'JetBrains Mono, monospace',
-          fontSize: '13px',
+          fontSize: '12.5px',
           lineHeight: '1.5',
         }}
       >

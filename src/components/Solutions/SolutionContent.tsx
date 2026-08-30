@@ -16,10 +16,10 @@ const SolutionContent: React.FC<SolutionContentProps> = ({
   type = 'text',
 }) => {
   return (
-    <div className="bg-[#1E2530]/80 rounded-lg p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-2 h-2 rounded-full bg-red-500" />
-        <h2 className="text-[13px] font-semibold text-white tracking-wide">{title}</h2>
+    <div className="bg-black/30 rounded-xl p-3.5 border border-white/10 shadow-lg">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+        <h2 className="text-[13px] font-semibold text-white tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{title}</h2>
       </div>
 
       {isLoading ? (
