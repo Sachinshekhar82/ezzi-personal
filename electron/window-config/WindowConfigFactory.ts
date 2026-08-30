@@ -36,14 +36,18 @@ export class WindowConfigFactory implements WindowConfigProvider {
     } else {
       window.setIgnoreMouseEvents(false);
     }
-    window.setFocusable(config.focusable);
-    window.setSkipTaskbar(config.skipTaskbar);
-    window.setAlwaysOnTop(config.alwaysOnTop, config.alwaysOnTopLevel, 1);
-    window.setVisibleOnAllWorkspaces(config.visibleOnAllWorkspaces, {
-      visibleOnFullScreen: config.visibleOnFullScreen,
+    window.setFocusable(config.focusable ?? true);
+    window.setSkipTaskbar(config.skipTaskbar ?? true);
+    window.setAlwaysOnTop(config.alwaysOnTop ?? true, config.alwaysOnTopLevel || 'screen-saver', 1);
+    window.setVisibleOnAllWorkspaces(config.visibleOnAllWorkspaces ?? true, {
+      visibleOnFullScreen: config.visibleOnFullScreen ?? true,
     });
-    window.setContentProtection(config.contentProtection);
+    window.setContentProtection(config.contentProtection ?? true);
     window.setOpacity(config.opacity);
+    if (config.opacity > 0) {
+      window.show();
+      window.focus();
+    }
 
     window.setBounds(currentBounds);
   }
@@ -62,7 +66,6 @@ export class WindowConfigFactory implements WindowConfigProvider {
 
     // Apply Windows-specific configurations
     if (process.platform === 'win32' && platformConfig.win32) {
-      // Note: thickFrame must be set during window creation, but we can log for debugging
       console.log('Windows platform config applied:', platformConfig.win32);
     }
   }

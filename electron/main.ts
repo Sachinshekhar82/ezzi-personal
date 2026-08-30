@@ -184,7 +184,8 @@ async function createWindow(): Promise<void> {
   const workArea = primaryDisplay.workAreaSize;
   state.screenWidth = workArea.width;
   state.screenHeight = workArea.height;
-  state.currentY = 50;
+  state.currentX = Math.max(50, Math.floor((workArea.width - 620) / 2));
+  state.currentY = 60;
 
   const configFactory = WindowConfigFactory.getInstance();
   const windowConfig = configFactory.getConfig(state.appMode);
@@ -202,7 +203,7 @@ async function createWindow(): Promise<void> {
     ...windowConfig.baseSettings,
     ...windowsSpecificOptions,
     x: state.currentX,
-    y: 50,
+    y: state.currentY,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -218,6 +219,8 @@ async function createWindow(): Promise<void> {
   // Add more detailed logging for window events
   state.mainWindow.webContents.on('did-finish-load', () => {
     console.log('Window finished loading');
+    state.mainWindow?.show();
+    state.mainWindow?.focus();
   });
 
   state.mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
@@ -246,19 +249,14 @@ async function createWindow(): Promise<void> {
 
   // Configure window behavior
   state.mainWindow.webContents.setZoomFactor(1);
-  if (isDev) {
-    // console.log('Dev mode enabled, opening dev tools...');
-    // state.mainWindow.webContents.openDevTools();
-  }
   state.mainWindow.webContents.setWindowOpenHandler(() => {
     return { action: 'allow' };
   });
 
-  state.mainWindow.setContentProtection(true);
   state.mainWindow.setVisibleOnAllWorkspaces(true, {
     visibleOnFullScreen: true,
   });
-  state.mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+  state.mainWindow.setAlwaysOnTop(true, 'floating', 1);
 
   // Apply platform-specific configurations
   const platformConfig = windowConfig.behavior.platformSpecific;
@@ -269,10 +267,9 @@ async function createWindow(): Promise<void> {
     state.mainWindow.setHasShadow(platformConfig.darwin.hasShadow);
   }
 
-  // Prevent a window from being included in the window switcher
-  state.mainWindow.setSkipTaskbar(true);
+  state.mainWindow.setSkipTaskbar(false);
 
-  // Prevent the window from being captured by screen recording
+  // Window frame & throttling
   state.mainWindow.webContents.setBackgroundThrottling(false);
   state.mainWindow.webContents.setFrameRate(60);
 
@@ -402,8 +399,9 @@ function showMainWindow(): void {
     const configFactory = WindowConfigFactory.getInstance();
     const view = getView();
 
-    win.setOpacity(0);
-    win.showInactive();
+    win.setOpacity(1);
+    win.show();
+    win.focus();
 
     // Apply appropriate behavior based on current view
     if (view === 'queue') {
@@ -523,9 +521,9 @@ function setWindowDimensions(width: number, height: number, source: string): voi
       );
     }
 
-    const effectiveContentWidth = Math.max(baseWidth - 32, state.codeDesiredWidth);
-    const newWidth = Math.min(effectiveContentWidth + 32, maxWidth);
-    const newHeight = Math.ceil(height);
+    const effectiveContentWidth = Math.max(600, Math.max(baseWidth - 32, state.codeDesiredWidth));
+    const newWidth = Math.max(620, Math.min(effectiveContentWidth + 32, maxWidth));
+    const newHeight = Math.max(520, Math.ceil(height));
 
     console.log(
       '[setWindowDimensions] effectiveContentWidth:',

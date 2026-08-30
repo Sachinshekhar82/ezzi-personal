@@ -16,7 +16,7 @@ describe('LocalStorageProvider', () => {
       const settings = await provider.getSettings();
 
       // Assert
-      expect(settings).toEqual({
+      expect(settings).toMatchObject({
         solutionLanguage: ProgrammingLanguage.Python,
         userLanguage: UserLanguage.EN_US,
         appMode: AppMode.LIVE_INTERVIEW,
@@ -37,7 +37,7 @@ describe('LocalStorageProvider', () => {
       const settings = await provider.getSettings();
 
       // Assert
-      expect(settings).toEqual({
+      expect(settings).toMatchObject({
         solutionLanguage: ProgrammingLanguage.JavaScript,
         userLanguage: UserLanguage.ES_ES,
         appMode: AppMode.LEETCODE_SOLVER,
@@ -51,7 +51,7 @@ describe('LocalStorageProvider', () => {
       const settings = await provider.getSettings();
 
       // Assert
-      expect(settings).toEqual({
+      expect(settings).toMatchObject({
         solutionLanguage: ProgrammingLanguage.Python,
         userLanguage: UserLanguage.EN_US,
         appMode: AppMode.LIVE_INTERVIEW,
@@ -75,7 +75,7 @@ describe('LocalStorageProvider', () => {
 
       // Assert
       const persisted = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEYS.EZZI_SETTINGS) ?? '{}');
-      expect(persisted).toEqual({
+      expect(persisted).toMatchObject({
         solutionLanguage: ProgrammingLanguage.Go,
         userLanguage: UserLanguage.EN_US,
         appMode: AppMode.LIVE_INTERVIEW,

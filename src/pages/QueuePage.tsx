@@ -1,16 +1,24 @@
 import type React from 'react';
 import { CommandSection, ScreenshotSection } from '../components/sections';
+import { LiveAudioPanel } from '../components/Audio/LiveAudioPanel';
 import { useQueue } from '../hooks';
+import { useLiveAudio } from '../contexts/LiveAudioContext';
 import { LeetcodeSolverLayout, LiveInterviewLayout, useAppModeLayout } from '../layouts';
 
 interface QueuePageProps {
   setView: (view: 'queue' | 'solutions' | 'debug') => void;
 }
 
-const QueuePage: React.FC<QueuePageProps> = ({ setView: _setView }) => {
+const QueuePage: React.FC<QueuePageProps> = ({ setView }) => {
   const { isLiveInterview } = useAppModeLayout();
   const { screenshots, handleDeleteScreenshot, handleTooltipVisibilityChange, contentRef } =
     useQueue();
+  const { askGeminiFromAudio } = useLiveAudio();
+
+  const handleAskGemini = () => {
+    setView('solutions');
+    void askGeminiFromAudio();
+  };
 
   const screenshotSection =
     screenshots.length > 0 ? (
@@ -31,9 +39,10 @@ const QueuePage: React.FC<QueuePageProps> = ({ setView: _setView }) => {
 
   if (isLiveInterview) {
     return (
-      <div ref={contentRef} className="bg-transparent w-1/2">
-        <div className="px-4 py-3">
-          <div className="space-y-3 w-fit">
+      <div ref={contentRef} className="bg-transparent w-full max-w-2xl">
+        <div className="px-4 py-3 space-y-3">
+          <LiveAudioPanel onAskGemini={handleAskGemini} />
+          <div className="w-fit">
             <LiveInterviewLayout
               screenshotSection={screenshotSection}
               commandSection={commandSection}
@@ -44,7 +53,8 @@ const QueuePage: React.FC<QueuePageProps> = ({ setView: _setView }) => {
     );
   } else {
     return (
-      <div ref={contentRef} className="bg-transparent w-full">
+      <div ref={contentRef} className="bg-transparent w-full max-w-2xl px-4 py-3 space-y-3">
+        <LiveAudioPanel onAskGemini={handleAskGemini} />
         <LeetcodeSolverLayout
           screenshotSection={screenshotSection}
           commandSection={commandSection}

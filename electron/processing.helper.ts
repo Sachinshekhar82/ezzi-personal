@@ -68,12 +68,12 @@ export class ProcessingHelper {
       return;
     }
 
-    if (!isSelfHosted()) {
+    if (!isSelfHosted() && !process.env.GEMINI_API_KEY && !process.env.VITE_GEMINI_API_KEY) {
       const subscriptionLevel = this.authStorage.getSubscriptionLevel();
       if (subscriptionLevel !== SubscriptionLevel.PRO) {
         mainWindow.webContents.send(
           this.deps.PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR,
-          'Upgrade to Pro to generate solutions. Visit getezzi.com to upgrade your plan.',
+          'Upgrade to Pro or set your GEMINI_API_KEY in .env or Settings for free live answers.',
         );
 
         return;
@@ -224,10 +224,10 @@ export class ProcessingHelper {
       }
 
       const token = this.getAuthToken();
-      if (!isSelfHosted() && !token) {
+      if (!isSelfHosted() && !process.env.GEMINI_API_KEY && !process.env.VITE_GEMINI_API_KEY && !token) {
         return {
           success: false,
-          error: 'Authentication required. Please log in.',
+          error: 'Please set your GEMINI_API_KEY in .env or Settings for free real-time Gemini AI solutions.',
         };
       }
 
@@ -285,12 +285,12 @@ export class ProcessingHelper {
     data?: DebugResponse | LeetCodeDebugResponse;
     error?: string;
   }> {
-    if (!isSelfHosted()) {
+    if (!isSelfHosted() && !process.env.GEMINI_API_KEY && !process.env.VITE_GEMINI_API_KEY) {
       const subscriptionLevel = this.authStorage.getSubscriptionLevel();
       if (subscriptionLevel !== SubscriptionLevel.PRO) {
         return {
           success: false,
-          error: 'Upgrade to Pro to use debug.',
+          error: 'Upgrade to Pro or set your GEMINI_API_KEY for free live answers.',
         };
       }
     }
@@ -303,10 +303,10 @@ export class ProcessingHelper {
         console.log('Running mock mode');
       }
 
-      if (!isSelfHosted() && !token) {
+      if (!isSelfHosted() && !process.env.GEMINI_API_KEY && !process.env.VITE_GEMINI_API_KEY && !token) {
         return {
           success: false,
-          error: 'Your session or subscription has expired. Please sign in again.',
+          error: 'Please set your GEMINI_API_KEY in .env or Settings for free real-time Gemini AI solutions.',
         };
       }
 

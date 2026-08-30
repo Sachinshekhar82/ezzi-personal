@@ -199,6 +199,14 @@ const electronAPI = {
       ipcRenderer.removeListener(PROCESSING_EVENTS.UNAUTHORIZED, subscription);
     };
   },
+  onToggleAudioListening: (callback: () => void) => {
+    const subscription = () => callback();
+    ipcRenderer.on('audio:toggle-listening', subscription);
+
+    return () => {
+      ipcRenderer.removeListener('audio:toggle-listening', subscription);
+    };
+  },
   openExternal: (url: string) => shell.openExternal(url),
   triggerScreenshot: () => ipcRenderer.invoke('trigger-screenshot'),
   triggerReset: () => ipcRenderer.invoke('trigger-reset'),

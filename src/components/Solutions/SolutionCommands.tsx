@@ -1,6 +1,6 @@
 import type { Screenshot } from '@shared/api.ts';
 import type React from 'react';
-import { useIsFreeUser } from '../../contexts/SubscriptionContext';
+import { useLiveAudio } from '../../contexts/LiveAudioContext';
 import CommandButton from '../shared/commands/CommandButton';
 
 export interface SolutionCommandsProps {
@@ -9,21 +9,26 @@ export interface SolutionCommandsProps {
 }
 
 const SolutionCommands: React.FC<SolutionCommandsProps> = ({ isProcessing, screenshots = [] }) => {
-  const isFree = useIsFreeUser();
+  const { isListening } = useLiveAudio();
 
   return (
     <div className="pt-2 w-fit">
-      <div className="text-xs text-gray-100 bg-[#1E2530]/80 rounded-lg py-2 px-4 flex items-center justify-center gap-4">
+      <div className="text-xs text-gray-100 bg-[#1E2530]/90 backdrop-blur-md rounded-xl py-2 px-4 flex items-center justify-center gap-3 shadow-xl border border-white/10">
         <CommandButton label="Show/Hide" shortcut="B" />
+
+        <CommandButton
+          label={isListening ? 'Listening' : 'Live Audio'}
+          shortcut="M"
+        />
 
         {!isProcessing && (
           <>
             <CommandButton
-              label={screenshots.length === 0 ? 'Screenshot your code' : 'Screenshot'}
+              label={screenshots.length === 0 ? 'Screenshot code' : 'Screenshot'}
               shortcut="H"
             />
 
-            {screenshots.length > 0 && !isFree && <CommandButton label="Debug" shortcut="↵" />}
+            <CommandButton label="Debug / Re-solve" shortcut="↵" />
           </>
         )}
 

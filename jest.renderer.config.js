@@ -1,7 +1,7 @@
 module.exports = {
   displayName: 'React Renderer Process',
   testEnvironment: 'jsdom',
-  testMatch: ['<rootDir>/src/**/*.spec.{ts,tsx}'],
+  testMatch: ['**/src/**/*.spec.{ts,tsx}'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   transform: {
     '^.+\\.(ts|tsx)$': [

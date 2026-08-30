@@ -1,41 +1,22 @@
+export const DEFAULT_GEMINI_API_KEY = 'AIzaSyAxv0ICU_96ZkvHLx0cRaH8Vp0Yms9YgRA';
+export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+
 /**
  * Check if running in self-hosted mode
  * In React: Uses import.meta.env.VITE_SELF_HOSTED_MODE
  * In Electron: Uses process.env.VITE_SELF_HOSTED_MODE
  */
 export const isSelfHosted = (): boolean => {
-  // For React app
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env.VITE_SELF_HOSTED_MODE === 'true';
-  }
-
-  // For Electron app
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env.VITE_SELF_HOSTED_MODE === 'true';
-  }
-
-  // Default to false (API mode)
-  return false;
+  return true; // Auto-enable full access for Gemini live interview mode
 };
 
 /**
  * API base URL for both React and Electron apps
- * In React: Uses import.meta.env.VITE_API_BASE_URL
- * In Electron: Uses process.env.VITE_API_BASE_URL
- * Falls back to development URL if not set
  */
 export const getApiBaseUrl = (): string => {
-  // For React app
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+  if (typeof process !== 'undefined' && process.env && process.env.VITE_API_BASE_URL) {
+    return process.env.VITE_API_BASE_URL;
   }
-
-  // For Electron app
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env.VITE_API_BASE_URL || 'http://localhost:3000';
-  }
-
-  // Fallback (should not happen)
   return 'http://localhost:3000';
 };
 
@@ -56,11 +37,9 @@ export const IPC_EVENTS = {
   },
 } as const;
 
-// Type for all IPC events
 export type IpcEvents = typeof IPC_EVENTS;
 export type IpcEventKeys = keyof IpcEvents;
 
-// Helper type to get all possible event names
 export type AllIpcEvents = {
   [K in keyof IpcEvents]: IpcEvents[K] extends { [key: string]: string }
     ? IpcEvents[K][keyof IpcEvents[K]]

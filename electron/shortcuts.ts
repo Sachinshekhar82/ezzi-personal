@@ -42,6 +42,7 @@ export class ShortcutsHelper {
 
     globalShortcut.unregisterAll();
 
+    // Screenshot Capture (Cmd/Ctrl + H)
     globalShortcut.register('CommandOrControl+H', () => {
       void (async () => {
         const mainWindow = this.deps.getMainWindow();
@@ -61,10 +62,21 @@ export class ShortcutsHelper {
       })();
     });
 
+    // Toggle Live Audio Listening (Cmd/Ctrl + M)
+    globalShortcut.register('CommandOrControl+M', () => {
+      console.debug('Command + M pressed. Toggling live audio listening...');
+      const mainWindow = this.deps.getMainWindow();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('audio:toggle-listening');
+      }
+    });
+
+    // Solve / Ask AI (Cmd/Ctrl + Enter)
     globalShortcut.register('CommandOrControl+Enter', () => {
       void this.deps.processingHelper?.processScreenshotsSolve();
     });
 
+    // Reset Context / Start Over (Cmd/Ctrl + G)
     globalShortcut.register('CommandOrControl+G', () => {
       console.debug('Command + G pressed. Canceling requests and resetting queues...');
 
@@ -85,6 +97,7 @@ export class ShortcutsHelper {
       }
     });
 
+    // Move Window Directions
     globalShortcut.register('CommandOrControl+Left', () => {
       console.debug('Command/Ctrl + Left pressed. Moving window left.');
       this.deps.moveWindowLeft();
@@ -105,16 +118,9 @@ export class ShortcutsHelper {
       this.deps.moveWindowUp();
     });
 
+    // Toggle Window Visibility (Cmd/Ctrl + B)
     globalShortcut.register('CommandOrControl+B', () => {
       this.deps.toggleMainWindow();
-    });
-
-    globalShortcut.register('CommandOrControl+Shift+Left', () => {
-      console.debug('Command+Shift+Left pressed!');
-    });
-
-    globalShortcut.register('CommandOrControl+Shift+Right', () => {
-      console.debug('Command+Shift+Right pressed!');
     });
   }
 }

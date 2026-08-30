@@ -15,6 +15,9 @@ export function useSolutions() {
   const [thoughtsData, setThoughtsData] = useState<string[] | null>(null);
   const [timeComplexityData, setTimeComplexityData] = useState<string | null>(null);
   const [spaceComplexityData, setSpaceComplexityData] = useState<string | null>(null);
+  const [problemStatement, setProblemStatement] = useState<string | null>(null);
+  const [edgeCases, setEdgeCases] = useState<string[] | null>(null);
+  const [followUps, setFollowUps] = useState<{ question: string; answer: string }[] | null>(null);
   const [isResetting, setIsResetting] = useState(false);
 
   const {
@@ -36,7 +39,7 @@ export function useSolutions() {
       const contentHeight = contentRef.current.scrollHeight;
       const contentWidth = contentRef.current.scrollWidth;
       window.electronAPI
-        .updateContentDimensions({
+        ?.updateContentDimensions({
           width: contentWidth,
           height: contentHeight,
           source: 'useSolutions',
@@ -48,20 +51,14 @@ export function useSolutions() {
   // Update local state when context solution changes
   useEffect(() => {
     if (solutionState.solution) {
-      setSolutionData(solutionState.solution.code || null);
-      setThoughtsData(
-        'thoughts' in solutionState.solution ? solutionState.solution.thoughts || null : null,
-      );
-      setTimeComplexityData(
-        'time_complexity' in solutionState.solution
-          ? solutionState.solution.time_complexity || null
-          : null,
-      );
-      setSpaceComplexityData(
-        'space_complexity' in solutionState.solution
-          ? solutionState.solution.space_complexity || null
-          : null,
-      );
+      const sol = solutionState.solution as any;
+      setSolutionData(sol.code || null);
+      setThoughtsData('thoughts' in sol ? sol.thoughts || null : null);
+      setTimeComplexityData('time_complexity' in sol ? sol.time_complexity || null : null);
+      setSpaceComplexityData('space_complexity' in sol ? sol.space_complexity || null : null);
+      setProblemStatement(sol.problem_statement || null);
+      setEdgeCases(sol.edge_cases || null);
+      setFollowUps(sol.follow_ups || null);
     }
   }, [solutionState.solution]);
 
@@ -89,25 +86,21 @@ export function useSolutions() {
         setThoughtsData(null);
         setTimeComplexityData(null);
         setSpaceComplexityData(null);
+        setProblemStatement(null);
+        setEdgeCases(null);
+        setFollowUps(null);
       }),
       window.electronAPI.onSolutionError((error: string) => {
         showToast('Processing Failed', error, 'error');
-        // Restore previous solution data on error
         if (solutionState.solution) {
-          setSolutionData(solutionState.solution.code || null);
-          setThoughtsData(
-            'thoughts' in solutionState.solution ? solutionState.solution.thoughts || null : null,
-          );
-          setTimeComplexityData(
-            'time_complexity' in solutionState.solution
-              ? solutionState.solution.time_complexity || null
-              : null,
-          );
-          setSpaceComplexityData(
-            'space_complexity' in solutionState.solution
-              ? solutionState.solution.space_complexity || null
-              : null,
-          );
+          const sol = solutionState.solution as any;
+          setSolutionData(sol.code || null);
+          setThoughtsData('thoughts' in sol ? sol.thoughts || null : null);
+          setTimeComplexityData('time_complexity' in sol ? sol.time_complexity || null : null);
+          setSpaceComplexityData('space_complexity' in sol ? sol.space_complexity || null : null);
+          setProblemStatement(sol.problem_statement || null);
+          setEdgeCases(sol.edge_cases || null);
+          setFollowUps(sol.follow_ups || null);
         }
       }),
       window.electronAPI.onSolutionSuccess((data: SolveResponse | LeetCodeSolveResponse) => {
@@ -115,10 +108,14 @@ export function useSolutions() {
           return;
         }
         setSolution(data);
-        setSolutionData(data.code || null);
-        setThoughtsData('thoughts' in data ? data.thoughts || null : null);
-        setTimeComplexityData('time_complexity' in data ? data.time_complexity || null : null);
-        setSpaceComplexityData('space_complexity' in data ? data.space_complexity || null : null);
+        const sol = data as any;
+        setSolutionData(sol.code || null);
+        setThoughtsData('thoughts' in sol ? sol.thoughts || null : null);
+        setTimeComplexityData('time_complexity' in sol ? sol.time_complexity || null : null);
+        setSpaceComplexityData('space_complexity' in sol ? sol.space_complexity || null : null);
+        setProblemStatement(sol.problem_statement || null);
+        setEdgeCases(sol.edge_cases || null);
+        setFollowUps(sol.follow_ups || null);
         void clearAllScreenshots();
       }),
       window.electronAPI.onDebugStart(() => setDebugProcessing(true)),
@@ -160,6 +157,9 @@ export function useSolutions() {
     thoughtsData,
     timeComplexityData,
     spaceComplexityData,
+    problemStatement,
+    edgeCases,
+    followUps,
     isResetting,
     screenshots,
     contentRef,

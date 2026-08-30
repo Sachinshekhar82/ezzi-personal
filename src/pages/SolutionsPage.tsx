@@ -1,5 +1,6 @@
 import type React from 'react';
 import { CommandSection, ScreenshotSection, SolutionSection } from '../components/sections';
+import { LiveAudioPanel } from '../components/Audio/LiveAudioPanel';
 import { useSolutionContext } from '../contexts/SolutionContext';
 import { useSolutions } from '../hooks';
 import { LeetcodeSolverLayout, LiveInterviewLayout, useAppModeLayout } from '../layouts';
@@ -18,6 +19,9 @@ const SolutionsPage: React.FC<SolutionsPageProps> = ({ setView: _setView }) => {
     thoughtsData,
     timeComplexityData,
     spaceComplexityData,
+    problemStatement,
+    edgeCases,
+    followUps,
     isResetting,
     screenshots,
     contentRef,
@@ -49,6 +53,9 @@ const SolutionsPage: React.FC<SolutionsPageProps> = ({ setView: _setView }) => {
       thoughtsData={thoughtsData}
       timeComplexityData={timeComplexityData}
       spaceComplexityData={spaceComplexityData}
+      problemStatement={problemStatement}
+      edgeCases={edgeCases}
+      followUps={followUps}
       isGenerating={!solutionData}
     />
   );
@@ -56,6 +63,7 @@ const SolutionsPage: React.FC<SolutionsPageProps> = ({ setView: _setView }) => {
   if (isLiveInterview) {
     return (
       <div ref={contentRef} className="relative space-y-3 px-4 py-3">
+        <LiveAudioPanel className="mb-2" />
         <LiveInterviewLayout
           screenshotSection={screenshotSection}
           commandSection={commandSection}
@@ -65,7 +73,8 @@ const SolutionsPage: React.FC<SolutionsPageProps> = ({ setView: _setView }) => {
     );
   } else {
     return (
-      <div ref={contentRef} className="w-full">
+      <div ref={contentRef} className="w-full space-y-3 px-4 py-3">
+        <LiveAudioPanel className="mb-2" />
         <LeetcodeSolverLayout
           screenshotSection={screenshotSection}
           commandSection={commandSection}

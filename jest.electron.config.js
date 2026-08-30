@@ -1,7 +1,7 @@
 module.exports = {
   displayName: 'Electron Main Process',
   testEnvironment: 'node',
-  testMatch: ['<rootDir>/electron/**/*.spec.ts'],
+  testMatch: ['**/electron/**/*.spec.ts'],
   moduleFileExtensions: ['ts', 'js'],
   transform: {
     '^.+\\.ts$': [
