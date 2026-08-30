@@ -1,18 +1,23 @@
-import axios, { type AxiosResponse } from 'axios';
-import {
-  API_ENDPOINTS,
-  type DebugRequest,
-  type DebugResponse,
-  type SolveRequest,
-  type SolveResponse,
+import axios from 'axios';
+import type {
+  DebugResponse,
+  SolveResponse,
 } from '../../shared/api';
-import { API_BASE_URL, DEFAULT_GEMINI_API_KEY, DEFAULT_GEMINI_MODEL } from '../../shared/constants';
+import { DEFAULT_GEMINI_API_KEY, DEFAULT_GEMINI_MODEL } from '../../shared/constants';
 import type { AppModeProcessor, ProcessingParams, ProcessingResult } from './AppModeProcessor';
 
 export class LiveInterviewProcessor implements AppModeProcessor {
   private async processWithGemini(params: ProcessingParams, _isDebug = false): Promise<ProcessingResult<any>> {
     const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || DEFAULT_GEMINI_API_KEY;
     const model = process.env.GEMINI_MODEL || process.env.VITE_GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'Gemini API key is required. Please set GEMINI_API_KEY in your .env file or Settings.',
+      };
+    }
+
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       model,
     )}:generateContent?key=${encodeURIComponent(apiKey)}`;
@@ -90,9 +95,19 @@ Return valid JSON only.`,
       }
 
       return { success: true, data: { ...parsed, conversationId: parsed.conversationId || 'gemini-live-1' } };
-    } catch (err) {
+    } catch (err: any) {
       if (axios.isCancel(err)) {
         return { success: false, error: 'Processing was canceled by the user.' };
+      }
+      const data = err.response?.data;
+      if (data?.error?.message?.includes('leaked')) {
+        return {
+          success: false,
+          error: 'Gemini API Error: Your API key was blocked because it was leaked. Please get a fresh free API key at https://aistudio.google.com/app/apikey and paste it into .env or Settings.',
+        };
+      }
+      if (data?.error?.message) {
+        return { success: false, error: `Gemini API Error: ${data.error.message}` };
       }
       return {
         success: false,
@@ -102,114 +117,10 @@ Return valid JSON only.`,
   }
 
   async processSolve(params: ProcessingParams): Promise<ProcessingResult<SolveResponse>> {
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-    if (geminiKey && !params.headers?.Authorization) {
-      return this.processWithGemini(params, false);
-    }
-
-    try {
-      const { images, isMock, readableVarNames, signal, headers } = params;
-
-      const extractResponse = await axios.post<SolveRequest, AxiosResponse<SolveResponse>>(
-        `${API_BASE_URL}${API_ENDPOINTS.SOLUTIONS.SOLVE}`,
-        {
-          images,
-          isMock,
-          readableVarNames,
-        },
-        {
-          signal,
-          timeout: 300000,
-          headers,
-        },
-      );
-
-      return { success: true, data: extractResponse.data };
-    } catch (error: unknown) {
-      if (axios.isCancel(error)) {
-        return {
-          success: false,
-          error: 'Processing was canceled by the user.',
-        };
-      }
-
-      const axiosError = error as {
-        response?: { status?: number; data?: unknown };
-        message?: string;
-      };
-
-      if (axiosError.response?.status === 401) {
-        return {
-          success: false,
-          error: 'Your session or subscription has expired. Please sign in again.',
-        };
-      }
-
-      if (axiosError.response?.status === 402) {
-        return {
-          success: false,
-          error: 'Upgrade to Pro to generate solutions. Visit getezzi.com to upgrade your plan.',
-        };
-      }
-
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
-      };
-    }
+    return this.processWithGemini(params, false);
   }
 
   async processDebug(params: ProcessingParams): Promise<ProcessingResult<DebugResponse>> {
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-    if (geminiKey && !params.headers?.Authorization) {
-      return this.processWithGemini(params, true);
-    }
-
-    try {
-      const { images, isMock, readableVarNames, signal, headers } = params;
-
-      const response = await axios.post<DebugRequest, AxiosResponse<DebugResponse>>(
-        `${API_BASE_URL}${API_ENDPOINTS.SOLUTIONS.DEBUG}`,
-        { images, isMock, readableVarNames },
-        {
-          signal,
-          timeout: 300000,
-          headers,
-        },
-      );
-
-      return { success: true, data: response.data };
-    } catch (error: unknown) {
-      if (axios.isCancel(error)) {
-        return {
-          success: false,
-          error: 'Processing was canceled by the user.',
-        };
-      }
-
-      const axiosError = error as {
-        response?: { status?: number; data?: unknown };
-        message?: string;
-      };
-
-      if (axiosError.response?.status === 401) {
-        return {
-          success: false,
-          error: 'Your session or subscription has expired. Please sign in again.',
-        };
-      }
-
-      if (axiosError.response?.status === 402) {
-        return {
-          success: false,
-          error: 'Upgrade to Pro to generate solutions. Visit getezzi.com to upgrade your plan.',
-        };
-      }
-
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
-      };
-    }
+    return this.processWithGemini(params, true);
   }
 }

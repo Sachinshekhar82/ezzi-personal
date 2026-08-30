@@ -1,4 +1,7 @@
-export const DEFAULT_GEMINI_API_KEY = 'AIzaSyAxv0ICU_96ZkvHLx0cRaH8Vp0Yms9YgRA';
+export const DEFAULT_GEMINI_API_KEY =
+  (typeof process !== 'undefined' && (process.env?.GEMINI_API_KEY || process.env?.VITE_GEMINI_API_KEY)) ||
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) ||
+  '';
 export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 
 /**

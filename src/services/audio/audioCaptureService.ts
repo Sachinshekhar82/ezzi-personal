@@ -1,4 +1,4 @@
-// Real-time audio capture and speech recognition service for live Zoom/Teams/Meet interviews
+// Real-time audio capture and speech recognition service for live Zoom/Teams/Meet/Chime/YouTube interviews
 
 export type AudioSourceType = 'mic' | 'system' | 'both';
 
@@ -18,6 +18,7 @@ export class AudioCaptureService {
   private shouldKeepListening = false;
   private audioContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
+  private systemStream: MediaStream | null = null;
   private analyser: AnalyserNode | null = null;
   private animFrameId: number | null = null;
 
@@ -29,6 +30,7 @@ export class AudioCaptureService {
 
   private callbacks: AudioCaptureCallbacks = {};
   private language = 'en-US';
+  private currentSource: AudioSourceType = 'both';
 
   public static getInstance(): AudioCaptureService {
     if (!AudioCaptureService.instance) {
@@ -66,15 +68,16 @@ export class AudioCaptureService {
     }
   }
 
-  public async startListening(source: AudioSourceType = 'mic'): Promise<boolean> {
+  public async startListening(source: AudioSourceType = 'both'): Promise<boolean> {
     if (this.isListening) {
       return true;
     }
 
+    this.currentSource = source;
     this.shouldKeepListening = true;
 
     try {
-      // 1. Initialize Audio Media Stream & Analyzer for waveform
+      // 1. Initialize Audio Media Stream (Microphone, System Audio, or Both)
       await this.initAudioStream(source);
 
       // 2. Initialize Speech Recognition
@@ -131,6 +134,11 @@ export class AudioCaptureService {
       this.mediaStream = null;
     }
 
+    if (this.systemStream) {
+      this.systemStream.getTracks().forEach((track) => track.stop());
+      this.systemStream = null;
+    }
+
     if (this.audioContext && this.audioContext.state !== 'closed') {
       try {
         this.audioContext.close();
@@ -144,7 +152,7 @@ export class AudioCaptureService {
     this.callbacks.onAudioLevel?.(0);
   }
 
-  public toggleListening(source: AudioSourceType = 'mic'): Promise<boolean> {
+  public toggleListening(source: AudioSourceType = 'both'): Promise<boolean> {
     if (this.isListening) {
       this.stopListening();
       return Promise.resolve(false);
@@ -155,31 +163,69 @@ export class AudioCaptureService {
 
   private async initAudioStream(source: AudioSourceType): Promise<void> {
     try {
-      const constraints: MediaStreamConstraints = {
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-        video: false,
-      };
-
-      this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        this.audioContext = new AudioCtx();
-        const sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
-        this.analyser = this.audioContext.createAnalyser();
-        this.analyser.fftSize = 128;
-        this.analyser.smoothingTimeConstant = 0.8;
-        sourceNode.connect(this.analyser);
+      if (!AudioCtx) return;
 
-        this.startAudioLevelLoop();
+      this.audioContext = new AudioCtx();
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = 128;
+      this.analyser.smoothingTimeConstant = 0.8;
+
+      let combinedStream: MediaStream | null = null;
+
+      // 1. If system audio is requested
+      if (source === 'system' || source === 'both') {
+        try {
+          if (navigator.mediaDevices.getDisplayMedia) {
+            this.systemStream = await navigator.mediaDevices.getDisplayMedia({
+              video: true,
+              audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+              },
+            });
+
+            // Stop the unused video track immediately to save resources
+            this.systemStream.getVideoTracks().forEach((t) => t.stop());
+
+            const audioTracks = this.systemStream.getAudioTracks();
+            if (audioTracks.length > 0) {
+              const systemSource = this.audioContext.createMediaStreamSource(
+                new MediaStream(audioTracks),
+              );
+              systemSource.connect(this.analyser);
+              combinedStream = new MediaStream(audioTracks);
+            }
+          }
+        } catch (systemErr) {
+          console.warn('System audio capture was not granted, falling back to mic:', systemErr);
+        }
       }
+
+      // 2. If mic audio is requested or fallback
+      if (source === 'mic' || source === 'both' || !combinedStream) {
+        try {
+          const micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+            video: false,
+          });
+
+          this.mediaStream = micStream;
+          const micSource = this.audioContext.createMediaStreamSource(micStream);
+          micSource.connect(this.analyser);
+        } catch (micErr) {
+          console.warn('Microphone stream access warning:', micErr);
+        }
+      }
+
+      this.startAudioLevelLoop();
     } catch (err) {
-      console.warn('Audio visualization stream init warning:', err);
-      // Non-fatal, speech recognition can still attempt to run
+      console.warn('Audio stream init warning:', err);
     }
   }
 
@@ -261,7 +307,7 @@ export class AudioCaptureService {
     this.recognition.onerror = (event: any) => {
       console.warn('Speech recognition event:', event.error);
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        this.callbacks.onError?.('Microphone permission required for speech transcription.');
+        this.callbacks.onError?.('Microphone / audio permission required for speech transcription.');
         this.stopListening();
       }
     };

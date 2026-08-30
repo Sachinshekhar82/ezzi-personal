@@ -96,13 +96,23 @@ const SubscribedAppContent: React.FC = () => {
     };
   }, [clearAll, showToast, toggleListening]);
 
+  const [opacity, setOpacity] = useState<number>(0.82);
+
+  const cycleOpacity = () => {
+    setOpacity((prev) => (prev === 0.82 ? 0.6 : prev === 0.6 ? 0.45 : prev === 0.45 ? 0.95 : 0.82));
+  };
+
   return (
     <AppModeLayoutProvider>
-      <div ref={containerRef} className="min-h-0 bg-[#0F141C]/95 backdrop-blur-xl rounded-2xl border border-white/15 shadow-2xl overflow-hidden font-sans">
+      <div
+        ref={containerRef}
+        style={{ backgroundColor: `rgba(15, 20, 28, ${opacity})` }}
+        className="min-h-0 backdrop-blur-2xl rounded-2xl border border-white/20 shadow-2xl overflow-hidden font-sans transition-colors duration-200"
+      >
         {/* Draggable Header */}
         <div
           style={{ WebkitAppRegion: 'drag' } as any}
-          className="flex items-center justify-between px-3.5 py-2 bg-[#171E28]/90 border-b border-white/10 select-none cursor-move"
+          className="flex items-center justify-between px-3.5 py-2 bg-[#171E28]/70 border-b border-white/10 select-none cursor-move"
         >
           <div className="flex items-center gap-2 text-white/90 text-xs font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -113,9 +123,17 @@ const SubscribedAppContent: React.FC = () => {
           </div>
           <div
             style={{ WebkitAppRegion: 'no-drag' } as any}
-            className="flex items-center gap-2 text-[10px] text-white/40"
+            className="flex items-center gap-2 text-[10px] text-white/60"
           >
-            <span>Ctrl+B to toggle</span>
+            {/* Transparency toggle */}
+            <button
+              onClick={cycleOpacity}
+              className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/80 text-[10px] font-medium transition-colors"
+              title="Click to cycle transparency (Background Visibility)"
+            >
+              Opacity: {Math.round(opacity * 100)}%
+            </button>
+            <span className="opacity-50">Ctrl+B</span>
           </div>
         </div>
 
