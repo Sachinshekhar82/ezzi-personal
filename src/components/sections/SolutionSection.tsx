@@ -46,33 +46,19 @@ const SolutionSectionInner: React.FC<SolutionSectionProps> = ({
     return null;
   }
 
-  const complexityContent = (timeComplexityData || spaceComplexityData) && (
-    <div className="space-y-2 font-normal">
-      {timeComplexityData && (
-        <div className="flex items-start gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
-          <div>
-            <span className="font-semibold text-emerald-300">Time Complexity:</span>{' '}
-            <span className="text-white/90 font-mono">{timeComplexityData}</span>
-          </div>
-        </div>
-      )}
-      {spaceComplexityData && (
-        <div className="flex items-start gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 shrink-0" />
-          <div>
-            <span className="font-semibold text-indigo-300">Space Complexity:</span>{' '}
-            <span className="text-white/90 font-mono">{spaceComplexityData}</span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  // Combine thoughts with complexity items for unified presentation like the demo
+  const allThoughts = [...(thoughtsData || [])];
+  if (timeComplexityData && !allThoughts.some((t) => t.toLowerCase().includes('time complexity'))) {
+    allThoughts.push(`Time complexity will be ${timeComplexityData}`);
+  }
+  if (spaceComplexityData && !allThoughts.some((t) => t.toLowerCase().includes('space complexity'))) {
+    allThoughts.push(`Space complexity will be ${spaceComplexityData}`);
+  }
 
   const edgeCasesContent = edgeCases && edgeCases.length > 0 && (
     <div className="space-y-1.5">
       {edgeCases.map((ec, idx) => (
-        <div key={idx} className="flex items-start gap-2 text-[12px] text-amber-200/90">
+        <div key={idx} className="flex items-start gap-2 text-[12px] text-amber-200/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
           <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
           <div>{ec}</div>
         </div>
@@ -81,11 +67,11 @@ const SolutionSectionInner: React.FC<SolutionSectionProps> = ({
   );
 
   const followUpsContent = followUps && followUps.length > 0 && (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       {followUps.map((fu, idx) => (
-        <div key={idx} className="bg-black/30 rounded-lg p-2.5 border border-white/5 space-y-1">
+        <div key={idx} className="bg-black/40 rounded-lg p-2.5 border border-white/10 space-y-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
           <div className="text-[12px] font-medium text-purple-300">Q: {fu.question}</div>
-          <div className="text-[11px] text-white/80 leading-relaxed">A: {fu.answer}</div>
+          <div className="text-[11px] text-gray-200 leading-relaxed">A: {fu.answer}</div>
         </div>
       ))}
     </div>
@@ -112,23 +98,23 @@ const SolutionSectionInner: React.FC<SolutionSectionProps> = ({
     <div className={`space-y-3.5 ${className}`}>
       {problemStatement && (
         <SolutionContent
-          title="Problem / Interview Question"
-          content={<div className="text-white/90 font-sans text-xs leading-relaxed">{problemStatement}</div>}
+          title="Problem Statement"
+          content={<div className="text-gray-100 font-sans text-xs leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{problemStatement}</div>}
           isLoading={false}
         />
       )}
 
-      {thoughtsData && (
+      {allThoughts.length > 0 && (
         <SolutionContent
-          title={title === 'Solution' ? 'Verbal Talking Points (Say Out Loud)' : 'What I Changed'}
-          content={<ThoughtsList thoughts={thoughtsData} />}
-          isLoading={!thoughtsData}
+          title="My Thoughts"
+          content={<ThoughtsList thoughts={allThoughts} />}
+          isLoading={false}
         />
       )}
 
       {solutionData && (
         <SolutionContent
-          title={title}
+          title="Solution"
           content={
             <CodeBlock code={solutionData} language={currentLanguage} showCopyButton={true} />
           }
@@ -137,17 +123,9 @@ const SolutionSectionInner: React.FC<SolutionSectionProps> = ({
         />
       )}
 
-      {complexityContent && (
-        <SolutionContent
-          title="Complexity Analysis"
-          content={complexityContent}
-          isLoading={!timeComplexityData && !spaceComplexityData}
-        />
-      )}
-
       {edgeCasesContent && (
         <SolutionContent
-          title="Key Edge Cases to Mention"
+          title="Key Edge Cases"
           content={edgeCasesContent}
           isLoading={false}
         />
@@ -155,7 +133,7 @@ const SolutionSectionInner: React.FC<SolutionSectionProps> = ({
 
       {followUpsContent && (
         <SolutionContent
-          title="Anticipated Follow-Up Questions"
+          title="Follow-Up Questions"
           content={followUpsContent}
           isLoading={false}
         />

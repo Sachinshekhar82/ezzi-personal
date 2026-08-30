@@ -96,12 +96,26 @@ const SubscribedAppContent: React.FC = () => {
     };
   }, [clearAll, showToast, toggleListening]);
 
-  // 2% default opacity for ultra-sheer see-through background
+  // Opacity state (default 2% ghost mode, or toggle to 40%, 75%, 95%)
   const [opacity, setOpacity] = useState<number>(0.02);
 
+  // Text contrast color mode: 'white' | 'black' | 'yellow'
+  const [textColorMode, setTextColorMode] = useState<'white' | 'black' | 'yellow'>('white');
+
   const cycleOpacity = () => {
-    setOpacity((prev) => (prev === 0.02 ? 0.15 : prev === 0.15 ? 0.35 : prev === 0.35 ? 0.7 : 0.02));
+    setOpacity((prev) => (prev === 0.02 ? 0.35 : prev === 0.35 ? 0.75 : prev === 0.75 ? 0.95 : 0.02));
   };
+
+  const cycleTextColor = () => {
+    setTextColorMode((prev) => (prev === 'white' ? 'black' : prev === 'black' ? 'yellow' : 'white'));
+  };
+
+  const textClass =
+    textColorMode === 'black'
+      ? 'text-gray-950 font-semibold drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]'
+      : textColorMode === 'yellow'
+      ? 'text-amber-300 font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,1)]'
+      : 'text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,1)]';
 
   return (
     <AppModeLayoutProvider>
@@ -110,14 +124,14 @@ const SubscribedAppContent: React.FC = () => {
         style={{
           backgroundColor: `rgba(10, 15, 25, ${opacity})`,
         }}
-        className="w-full max-h-[88vh] flex flex-col rounded-2xl border border-white/10 shadow-2xl overflow-hidden font-sans transition-colors duration-200"
+        className={`w-full max-h-[88vh] flex flex-col rounded-2xl border border-white/15 shadow-2xl overflow-hidden font-sans transition-colors duration-200 ${textClass}`}
       >
-        {/* Draggable Ultra-Thin Header */}
+        {/* Draggable Header */}
         <div
           style={{ WebkitAppRegion: 'drag' } as any}
-          className="flex items-center justify-between px-3 py-1.5 bg-black/20 border-b border-white/10 select-none cursor-move shrink-0"
+          className="flex items-center justify-between px-3 py-1.5 bg-black/30 border-b border-white/10 select-none cursor-move shrink-0"
         >
-          <div className="flex items-center gap-2 text-white text-xs font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,1)]">
+          <div className="flex items-center gap-2 text-xs font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,1)]">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
             <span>Ezzi Live Assistant</span>
             <span className="text-[10px] text-blue-300 bg-blue-500/20 px-1.5 py-0.5 rounded font-mono border border-blue-400/30">
@@ -126,12 +140,21 @@ const SubscribedAppContent: React.FC = () => {
           </div>
           <div
             style={{ WebkitAppRegion: 'no-drag' } as any}
-            className="flex items-center gap-2 text-[10px] text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]"
+            className="flex items-center gap-1.5 text-[10px]"
           >
+            {/* Text Color / Contrast Toggle */}
+            <button
+              onClick={cycleTextColor}
+              className="px-2 py-0.5 rounded-full bg-black/40 hover:bg-black/60 text-white text-[10px] font-medium border border-white/20 transition-all active:scale-95 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]"
+              title="Click to toggle text color (White / Black / Yellow for background visibility)"
+            >
+              🎨 Text: {textColorMode === 'white' ? 'White' : textColorMode === 'black' ? 'Black' : 'Yellow'}
+            </button>
+
             {/* Transparency / Ghost Mode Toggle */}
             <button
               onClick={cycleOpacity}
-              className="px-2 py-0.5 rounded-full bg-black/30 hover:bg-black/50 text-white text-[10px] font-medium border border-white/20 transition-all active:scale-95 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]"
+              className="px-2 py-0.5 rounded-full bg-black/40 hover:bg-black/60 text-white text-[10px] font-medium border border-white/20 transition-all active:scale-95 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]"
               title="Click to cycle transparency"
             >
               👻 Opacity: {Math.round(opacity * 100)}%

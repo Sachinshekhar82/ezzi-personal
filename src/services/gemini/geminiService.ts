@@ -36,63 +36,49 @@ export interface GeminiRequestOptions {
 const DEFAULT_MODEL = DEFAULT_GEMINI_MODEL;
 
 const LIVE_INTERVIEW_SYSTEM_INSTRUCTION = `You are an elite, world-class technical interview assistant and competitive programming coach.
-Your job is to assist a candidate during a live coding and technical interview in real-time.
-
-You will receive:
-1. Live spoken transcript from the interviewer (and candidate).
-2. (Optional) Screen captures of the coding environment / problem statement (LeetCode, HackerRank, CoderPad, Google Doc, etc.).
-3. Desired programming language and user language.
-
-Your goal is to provide a comprehensive, ultra-clear, and structured response tailored for real-time interview success.
+Your job is to assist a candidate during a live coding and technical interview in real-time. Respond FAST and CONCISELY.
 
 Always return a valid JSON object matching this exact structure:
 {
-  "problem_statement": "Concise 1-2 sentence summary of the exact technical problem or question being asked.",
+  "problem_statement": "Concise 1-sentence summary of the problem.",
   "thoughts": [
-    "High-level intuition: explain the core algorithmic insight in 1 sentence.",
-    "Data structures: why this data structure (e.g., hash map, two pointers, min-heap) is optimal.",
-    "Step-by-step verbal reasoning: bullet points the candidate should speak out loud to the interviewer."
+    "High-level intuition in 1 sentence.",
+    "Key algorithmic approach / data structure.",
+    "Step-by-step reasoning candidate should speak out loud to interviewer."
   ],
-  "code": "Complete, production-grade, clean, and optimal code solution with helpful inline comments explaining key lines.",
-  "time_complexity": "O(...) - with a brief 1-sentence verbal justification",
-  "space_complexity": "O(...) - with a brief 1-sentence verbal justification",
+  "code": "Clean, optimal, production-grade code with brief comments.",
+  "time_complexity": "O(...) - brief reason",
+  "space_complexity": "O(...) - brief reason",
   "edge_cases": [
-    "Edge case 1: e.g., empty array / null input handling",
-    "Edge case 2: e.g., duplicates / negative numbers / large values"
+    "Edge case 1 (e.g. empty input, bounds)",
+    "Edge case 2 (e.g. duplicates, negative values)"
   ],
   "follow_ups": [
     {
-      "question": "Expected interviewer follow-up question (e.g., how to scale, stream, or optimize space)",
-      "answer": "Concise answer to the follow-up question"
+      "question": "Expected follow-up question",
+      "answer": "Concise 1-2 sentence optimal answer"
     }
   ]
 }
 
-Important Rules:
-- Return ONLY the JSON object. Do not wrap in markdown code fences (\`\`\`json).
-- The thoughts MUST be structured as bullet points that the candidate can read and verbally say out loud to sound confident and structured.
-- The code must be optimal in time and space complexity, with meaningful variable names.
-- If programming language is specified, write the code strictly in that language.`;
+Return ONLY the JSON object without markdown code blocks.`;
 
-const LIVE_DEBUG_SYSTEM_INSTRUCTION = `You are an elite technical interview coach helping a candidate debug or optimize their live coding solution.
-
-Analyze the provided screenshots and/or interview feedback.
+const LIVE_DEBUG_SYSTEM_INSTRUCTION = `You are an elite technical interview coach helping a candidate debug their live code.
 
 Always return a valid JSON object matching this exact structure:
 {
   "thoughts": [
-    "Identify the bug, bottleneck, or requested modification.",
-    "Explain the fix clearly so the candidate can verbally explain it."
+    "Identify the bug or bottleneck.",
+    "Explain the fix clearly so candidate can speak it."
   ],
   "code": "Fully corrected and optimal code solution.",
-  "time_complexity": "O(...) - with verbal justification",
-  "space_complexity": "O(...) - with verbal justification",
+  "time_complexity": "O(...)",
+  "space_complexity": "O(...)",
   "what_changed": [
-    "Specific line/logic modification 1",
-    "Specific line/logic modification 2"
+    "Specific line/logic modification"
   ],
   "edge_cases": [
-    "Edge cases now addressed by the fix"
+    "Edge cases addressed by fix"
   ]
 }
 
@@ -118,6 +104,41 @@ export class GeminiService {
     return { mimeType: 'image/png', data: dataUriOrBase64 };
   }
 
+  private async downscaleBase64Image(dataUri: string, maxWidth = 1200): Promise<{ mimeType: string; data: string }> {
+    const { mimeType, data } = this.cleanBase64(dataUri);
+    if (typeof window === 'undefined' || typeof Image === 'undefined') {
+      return { mimeType, data };
+    }
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        if (img.width <= maxWidth) {
+          resolve({ mimeType, data });
+          return;
+        }
+        try {
+          const canvas = document.createElement('canvas');
+          const scale = maxWidth / img.width;
+          canvas.width = maxWidth;
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve({ mimeType, data });
+            return;
+          }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const resizedUri = canvas.toDataURL('image/jpeg', 0.82);
+          const parts = resizedUri.split(';base64,');
+          resolve({ mimeType: 'image/jpeg', data: parts[1] || '' });
+        } catch {
+          resolve({ mimeType, data });
+        }
+      };
+      img.onerror = () => resolve({ mimeType, data });
+      img.src = dataUri.startsWith('data:') ? dataUri : `data:${mimeType};base64,${data}`;
+    });
+  }
+
   public async generateInterviewSolution(
     options: GeminiRequestOptions,
   ): Promise<GeminiInterviewResponse> {
@@ -131,6 +152,12 @@ export class GeminiService {
       readableVarNames = true,
       signal,
     } = options;
+
+    if (!apiKey) {
+      throw new Error(
+        'Gemini API key is required. Please set GEMINI_API_KEY in your .env file or Settings.',
+      );
+    }
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       model,
@@ -152,7 +179,7 @@ Please analyze the interview question/audio and screenshots, and generate the st
     ];
 
     for (const img of images) {
-      const { mimeType, data } = this.cleanBase64(img);
+      const { mimeType, data } = await this.downscaleBase64Image(img);
       if (data) {
         parts.push({
           inline_data: {
@@ -174,8 +201,9 @@ Please analyze the interview question/audio and screenshots, and generate the st
         },
       ],
       generationConfig: {
-        temperature: 0.2,
-        topP: 0.95,
+        temperature: 0.1,
+        topP: 0.9,
+        maxOutputTokens: 2048,
         responseMimeType: 'application/json',
       },
     };
@@ -194,7 +222,10 @@ Please analyze the interview question/audio and screenshots, and generate the st
       let errorMessage = `Gemini API Error (${response.status}): ${response.statusText}`;
       try {
         const errorJson = JSON.parse(errorText);
-        if (errorJson.error?.message) {
+        if (errorJson.error?.message?.includes('leaked')) {
+          errorMessage =
+            'Gemini API Key was blocked because it was leaked. Please generate a fresh free key at https://aistudio.google.com/app/apikey and update your .env file.';
+        } else if (errorJson.error?.message) {
           errorMessage = `Gemini API Error: ${errorJson.error.message}`;
         }
       } catch {
@@ -241,6 +272,12 @@ Please analyze the interview question/audio and screenshots, and generate the st
       signal,
     } = options;
 
+    if (!apiKey) {
+      throw new Error(
+        'Gemini API key is required. Please set GEMINI_API_KEY in your .env file or Settings.',
+      );
+    }
+
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       model,
     )}:generateContent?key=${encodeURIComponent(apiKey)}`;
@@ -250,18 +287,18 @@ Target Programming Language: ${programmingLanguage}
 Candidate Language / Locale: ${userLanguage}
 Use Readable Variable Names: ${readableVarNames}
 
-${transcript ? `Live Audio / Debug Feedback:\n"""\n${transcript}\n"""` : ''}
+${transcript ? `Live Audio / Feedback Transcript:\n"""\n${transcript}\n"""` : ''}
 
-${images.length > 0 ? `Captured screen images for debugging: ${images.length} image(s). Check for error messages, failed test cases, or code changes requested.` : ''}
+${images.length > 0 ? `Captured screen images provided: ${images.length} image(s). Please inspect the current code and test failure/edge case.` : ''}
 
-Please analyze the issues and generate the structured JSON debug response.`;
+Please fix any bug, explain what was changed, and return structured JSON.`;
 
     const parts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> = [
       { text: promptText },
     ];
 
     for (const img of images) {
-      const { mimeType, data } = this.cleanBase64(img);
+      const { mimeType, data } = await this.downscaleBase64Image(img);
       if (data) {
         parts.push({
           inline_data: {
@@ -283,8 +320,9 @@ Please analyze the issues and generate the structured JSON debug response.`;
         },
       ],
       generationConfig: {
-        temperature: 0.2,
-        topP: 0.95,
+        temperature: 0.1,
+        topP: 0.9,
+        maxOutputTokens: 2048,
         responseMimeType: 'application/json',
       },
     };
@@ -303,7 +341,10 @@ Please analyze the issues and generate the structured JSON debug response.`;
       let errorMessage = `Gemini API Error (${response.status}): ${response.statusText}`;
       try {
         const errorJson = JSON.parse(errorText);
-        if (errorJson.error?.message) {
+        if (errorJson.error?.message?.includes('leaked')) {
+          errorMessage =
+            'Gemini API Key was blocked because it was leaked. Please generate a fresh free key at https://aistudio.google.com/app/apikey and update your .env file.';
+        } else if (errorJson.error?.message) {
           errorMessage = `Gemini API Error: ${errorJson.error.message}`;
         }
       } catch {
@@ -321,11 +362,12 @@ Please analyze the issues and generate the structured JSON debug response.`;
     }
 
     const parsed = this.parseJsonResponse<any>(candidateText, {
-      thoughts: ['Fixed algorithmic issue', 'Optimized solution'],
-      code: `// Debugged solution for ${programmingLanguage}\n`,
+      thoughts: ['Fixed bug in logic', 'Optimized solution'],
+      code: `// Debugged code for ${programmingLanguage}\n`,
       time_complexity: 'O(N)',
       space_complexity: 'O(1)',
-      what_changed: ['Adjusted pointer boundaries', 'Fixed base case'],
+      what_changed: ['Corrected index calculation'],
+      edge_cases: [],
     });
 
     return {
@@ -334,27 +376,17 @@ Please analyze the issues and generate the structured JSON debug response.`;
     };
   }
 
-  private parseJsonResponse<T>(rawText: string, fallback: T): T {
+  private parseJsonResponse<T>(text: string, fallback: T): T {
+    let cleanText = text.trim();
+    if (cleanText.startsWith('```json')) {
+      cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
     try {
-      let cleaned = rawText.trim();
-      if (cleaned.startsWith('```json')) {
-        cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
-      }
-      return JSON.parse(cleaned) as T;
-    } catch (err) {
-      console.warn('Failed to parse Gemini JSON directly, attempting recovery:', err);
-      const firstBrace = rawText.indexOf('{');
-      const lastBrace = rawText.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        try {
-          const jsonSubstring = rawText.substring(firstBrace, lastBrace + 1);
-          return JSON.parse(jsonSubstring) as T;
-        } catch {
-          // Fall through to fallback
-        }
-      }
+      return JSON.parse(cleanText) as T;
+    } catch {
       return fallback;
     }
   }
