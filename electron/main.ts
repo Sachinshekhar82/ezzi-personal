@@ -68,6 +68,7 @@ export interface IShortcutsHelperDeps {
   takeScreenshot: () => Promise<string>;
   getImagePreview: (filepath: string) => Promise<string>;
   processingHelper: ProcessingHelper | null;
+  getScreenshotQueue?: () => string[];
   clearQueues: () => void;
   setView: (view: 'queue' | 'solutions' | 'debug') => void;
   isVisible: () => boolean;
@@ -130,6 +131,7 @@ function initializeHelpers() {
     takeScreenshot,
     getImagePreview,
     processingHelper: state.processingHelper,
+    getScreenshotQueue,
     clearQueues,
     setView,
     isVisible: () => state.isWindowVisible,

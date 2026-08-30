@@ -29,6 +29,7 @@ export interface ElectronAPI {
   onUnauthorized: (callback: () => void) => () => void;
   onDebugError: (callback: (error: string) => void) => () => void;
   onToggleAudioListening: (callback: () => void) => () => void;
+  onTriggerAudioSolve: (callback: () => void) => () => void;
   openExternal: (url: string) => void;
   toggleMainWindow: () => Promise<{ success: boolean; error?: string }>;
   triggerScreenshot: () => Promise<{ success: boolean; error?: string }>;

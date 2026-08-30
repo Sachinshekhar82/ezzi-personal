@@ -73,7 +73,14 @@ export class ShortcutsHelper {
 
     // Solve / Ask AI (Cmd/Ctrl + Enter)
     globalShortcut.register('CommandOrControl+Enter', () => {
-      void this.deps.processingHelper?.processScreenshotsSolve();
+      const mainWindow = this.deps.getMainWindow();
+      const queue = this.deps.getScreenshotQueue ? this.deps.getScreenshotQueue() : [];
+      if (queue.length > 0) {
+        void this.deps.processingHelper?.processScreenshotsSolve();
+      } else if (mainWindow && !mainWindow.isDestroyed()) {
+        console.debug('Command + Enter pressed -> Triggering instant audio question answer.');
+        mainWindow.webContents.send('audio:trigger-solve');
+      }
     });
 
     // Reset Context / Start Over (Cmd/Ctrl + G)

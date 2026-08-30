@@ -30,6 +30,8 @@ interface ElectronAPI {
   onSolutionSuccess: (callback: (data: any) => void) => () => void;
   onUnauthorized: (callback: () => void) => () => void;
   onDebugError: (callback: (error: string) => void) => () => void;
+  onToggleAudioListening: (callback: () => void) => () => void;
+  onTriggerAudioSolve: (callback: () => void) => () => void;
   openExternal: (url: string) => Promise<void>;
   toggleMainWindow: () => Promise<{ success: boolean; error?: string }>;
   triggerScreenshot: () => Promise<{ success: boolean; error?: string }>;
@@ -205,6 +207,14 @@ const electronAPI = {
 
     return () => {
       ipcRenderer.removeListener('audio:toggle-listening', subscription);
+    };
+  },
+  onTriggerAudioSolve: (callback: () => void) => {
+    const subscription = () => callback();
+    ipcRenderer.on('audio:trigger-solve', subscription);
+
+    return () => {
+      ipcRenderer.removeListener('audio:trigger-solve', subscription);
     };
   },
   openExternal: (url: string) => shell.openExternal(url),

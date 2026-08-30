@@ -336,22 +336,23 @@ export class AudioCaptureService {
       clearInterval(this.silenceCheckInterval);
     }
 
-    // Check every 600ms for natural pauses in speech to trigger automatic answers
+    // Check every 300ms for natural pauses in speech to trigger immediate answers
     this.silenceCheckInterval = setInterval(() => {
       if (!this.isListening) return;
 
       const fullText = (this.fullTranscript + (this.interimTranscript ? ` ${this.interimTranscript}` : '')).trim();
-      if (!fullText || fullText.length < 12) return;
+      if (!fullText || fullText.length < 6) return;
 
       const now = Date.now();
       const silenceDuration = now - this.lastSpeechTimestamp;
 
-      // When the interviewer pauses for 1800ms (1.8s) after speaking a question
-      if (silenceDuration >= 1800 && fullText !== this.lastTriggeredText) {
+      // When the interviewer pauses for 1100ms (1.1s) after asking a question
+      if (silenceDuration >= 1100 && fullText !== this.lastTriggeredText) {
         this.lastTriggeredText = fullText;
+        console.log('[AudioCapture] Interview question detected, triggering auto-answer:', fullText);
         this.callbacks.onSilenceDetected?.(fullText, silenceDuration);
       }
-    }, 600);
+    }, 300);
   }
 }
 

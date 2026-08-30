@@ -16,7 +16,7 @@ interface SubscribedAppProps {
 
 const SubscribedAppContent: React.FC = () => {
   const { clearAll } = useSolutionContext();
-  const { toggleListening } = useLiveAudio();
+  const { toggleListening, askGeminiFromAudio } = useLiveAudio();
   const [view, setView] = useState<'queue' | 'solutions' | 'debug'>('queue');
   const containerRef = useRef<HTMLDivElement>(null);
   const { state: solutionState } = useSolutionContext();
@@ -84,11 +84,12 @@ const SubscribedAppContent: React.FC = () => {
         clearAll();
         setView('queue');
       }),
-      window.electronAPI?.onSolutionError?.((error: string) => {
-        showToast('Error', error, 'error');
-      }),
       window.electronAPI?.onToggleAudioListening?.(() => {
         void toggleListening();
+      }),
+      window.electronAPI?.onTriggerAudioSolve?.(() => {
+        setView('solutions');
+        void askGeminiFromAudio();
       }),
     ].filter(Boolean) as (() => void)[];
 
