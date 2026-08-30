@@ -1,14 +1,19 @@
+const getEnvVar = (name: string): string => {
+  if (typeof process !== 'undefined' && process.env && process.env[name]) {
+    return process.env[name] as string;
+  }
+  return '';
+};
+
 export const DEFAULT_GEMINI_API_KEY =
-  (typeof process !== 'undefined' && (process.env?.GEMINI_API_KEY || process.env?.VITE_GEMINI_API_KEY)) ||
-  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) ||
-  '';
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+  getEnvVar('GEMINI_API_KEY') || getEnvVar('VITE_GEMINI_API_KEY') || '';
+export const DEFAULT_GEMINI_MODEL =
+  getEnvVar('GEMINI_MODEL') || getEnvVar('VITE_GEMINI_MODEL') || 'gemini-2.5-flash';
 
 export const DEFAULT_GROQ_API_KEY =
-  (typeof process !== 'undefined' && (process.env?.GROQ_API_KEY || process.env?.VITE_GROQ_API_KEY)) ||
-  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GROQ_API_KEY) ||
-  '';
-export const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
+  getEnvVar('GROQ_API_KEY') || getEnvVar('VITE_GROQ_API_KEY') || '';
+export const DEFAULT_GROQ_MODEL =
+  getEnvVar('GROQ_MODEL') || getEnvVar('VITE_GROQ_MODEL') || 'llama-3.3-70b-versatile';
 
 /**
  * Check if running in self-hosted mode
@@ -16,7 +21,7 @@ export const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
  * In Electron: Uses process.env.VITE_SELF_HOSTED_MODE
  */
 export const isSelfHosted = (): boolean => {
-  return true; // Auto-enable full access for Gemini live interview mode
+  return true; // Auto-enable full access for direct AI live interview mode
 };
 
 /**

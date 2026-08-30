@@ -3,10 +3,6 @@ import type { ProcessingParams } from './AppModeProcessor';
 import { LeetCodeProcessor } from './LeetCodeProcessor';
 
 jest.mock('axios');
-jest.mock('../../shared/constants', () => ({
-  API_BASE_URL: 'http://localhost:3000',
-  isSelfHosted: jest.fn(() => false),
-}));
 
 function createParams(overrides: Partial<ProcessingParams> = {}): ProcessingParams {
   return {
@@ -24,46 +20,63 @@ const mockedIsCancel = jest.fn();
 
 describe('LeetCodeProcessor', () => {
   let processor: LeetCodeProcessor;
+  const originalEnv = process.env;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env = { ...originalEnv, GEMINI_API_KEY: 'test-gemini-key' };
     processor = new LeetCodeProcessor();
     mockedIsCancel.mockReturnValue(false);
     (axios as unknown as { isCancel: jest.Mock }).isCancel = mockedIsCancel;
   });
 
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
   describe('processSolve', () => {
-    test('WHEN request succeeds THEN it returns success with data', async () => {
-      const data = { code: 'class Solution {}', conversationId: 'c1' };
-      mockedAxios.post.mockResolvedValueOnce({ data });
+    test('WHEN Gemini request succeeds THEN it returns success with parsed data', async () => {
+      const geminiResponse = {
+        data: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      problem_statement: 'Two Sum',
+                      thoughts: ['Use hash map for O(N) lookup'],
+                      code: 'def twoSum(nums, target): return []',
+                      time_complexity: 'O(N)',
+                      space_complexity: 'O(N)',
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      };
+      mockedAxios.post.mockResolvedValueOnce(geminiResponse);
 
       // Act
       const result = await processor.processSolve(createParams());
 
       // Assert
-      expect(result).toEqual({ success: true, data });
+      expect(result.success).toBe(true);
+      expect(result.data?.code).toContain('def twoSum');
     });
 
-    test('WHEN response is 401 THEN it returns session expired error', async () => {
-      mockedAxios.post.mockRejectedValueOnce({ response: { status: 401 } });
+    test('WHEN API key is missing THEN it returns descriptive error', async () => {
+      delete process.env.GEMINI_API_KEY;
+      delete process.env.VITE_GEMINI_API_KEY;
 
       // Act
       const result = await processor.processSolve(createParams());
 
       // Assert
-      expect(result.error).toBe('Your session or subscription has expired. Please sign in again.');
-    });
-
-    test('WHEN response is 402 THEN it returns upgrade error', async () => {
-      mockedAxios.post.mockRejectedValueOnce({ response: { status: 402 } });
-
-      // Act
-      const result = await processor.processSolve(createParams());
-
-      // Assert
-      expect(result.error).toBe(
-        'Upgrade to Pro to generate solutions. Visit getezzi.com to upgrade your plan.',
-      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Gemini API key is required');
     });
 
     test('WHEN request is cancelled THEN it returns cancelled error', async () => {
@@ -79,49 +92,36 @@ describe('LeetCodeProcessor', () => {
   });
 
   describe('processDebug', () => {
-    test('WHEN conversationId is missing THEN it short-circuits with helpful error', async () => {
-      // Act
-      const result = await processor.processDebug(createParams());
-
-      // Assert
-      expect(result).toEqual({
-        success: false,
-        error: 'Conversation ID is required for debug requests. Please solve a problem first.',
-      });
-      expect(mockedAxios.post).not.toHaveBeenCalled();
-    });
-
-    test('WHEN conversationId is provided and request succeeds THEN it returns data', async () => {
-      const data = { code: 'fixed', conversationId: 'c1' };
-      mockedAxios.post.mockResolvedValueOnce({ data });
-
-      // Act
-      const result = await processor.processDebug(createParams({ conversationId: 'c1' }));
-
-      // Assert
-      expect(result).toEqual({ success: true, data });
-    });
-
-    test('WHEN response is 401 THEN it returns session expired error', async () => {
-      mockedAxios.post.mockRejectedValueOnce({ response: { status: 401 } });
+    test('WHEN debug request succeeds THEN it returns corrected data', async () => {
+      const geminiResponse = {
+        data: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      thoughts: ['Fixed off-by-one error'],
+                      code: 'def fixed(): pass',
+                      time_complexity: 'O(N)',
+                      space_complexity: 'O(1)',
+                      what_changed: ['Adjusted loop range'],
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      };
+      mockedAxios.post.mockResolvedValueOnce(geminiResponse);
 
       // Act
       const result = await processor.processDebug(createParams({ conversationId: 'c1' }));
 
       // Assert
-      expect(result.error).toBe('Your session or subscription has expired. Please sign in again.');
-    });
-
-    test('WHEN response is 402 THEN it returns upgrade error', async () => {
-      mockedAxios.post.mockRejectedValueOnce({ response: { status: 402 } });
-
-      // Act
-      const result = await processor.processDebug(createParams({ conversationId: 'c1' }));
-
-      // Assert
-      expect(result.error).toBe(
-        'Upgrade to Pro to generate solutions. Visit getezzi.com to upgrade your plan.',
-      );
+      expect(result.success).toBe(true);
+      expect(result.data?.code).toBe('def fixed(): pass');
     });
 
     test('WHEN request is cancelled THEN it returns cancelled error', async () => {
