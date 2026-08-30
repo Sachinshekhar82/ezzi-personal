@@ -1,11 +1,13 @@
 import type React from 'react';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { audioCaptureService } from '../services/audio/audioCaptureService';
-import { geminiService } from '../services/gemini/geminiService';
+import { useScreenshotContext } from './ScreenshotContext';
 import { useSettings } from './SettingsContext';
 import { useSolutionContext } from './SolutionContext';
-import { useScreenshotContext } from './ScreenshotContext';
 import { useToast } from './toast';
+import { audioCaptureService, type AudioSourceType } from '../services/audio/audioCaptureService';
+import { geminiService } from '../services/gemini/geminiService';
+import { groqService } from '../services/groq/groqService';
+import { DEFAULT_GROQ_API_KEY } from '@shared/constants';
 
 interface LiveAudioContextType {
   isListening: boolean;
@@ -72,25 +74,56 @@ export const LiveAudioProvider: React.FC<LiveAudioProviderProps> = ({
         isAnsweringRef.current = true;
         onAnswerStarted?.();
 
-        const imagePreviews = screenshots.map((s) => s.preview);
+        let response: any = null;
+        const groqKey =
+          (typeof process !== 'undefined' &&
+            (process.env?.GROQ_API_KEY || process.env?.VITE_GROQ_API_KEY)) ||
+          (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GROQ_API_KEY) ||
+          DEFAULT_GROQ_API_KEY;
 
-        const response = await geminiService.generateInterviewSolution({
-          apiKey: geminiApiKey,
-          model: geminiModel || 'gemini-2.5-flash',
-          transcript: activeText,
-          images: imagePreviews,
-          programmingLanguage: solutionLanguage,
-          userLanguage,
-        });
+        // 1. If pure audio question (no screenshots) and Groq API key is present:
+        // Use Groq ultra-fast LPU engine (sub-second response!)
+        if (!hasScreenshots && groqKey) {
+          try {
+            console.log('[LiveAudio] Routing audio question to ultra-fast Groq LPU engine...');
+            response = await groqService.generateInterviewSolution({
+              apiKey: groqKey,
+              model:
+                (typeof process !== 'undefined' && process.env?.GROQ_MODEL) ||
+                (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GROQ_MODEL) ||
+                'llama-3.3-70b-versatile',
+              transcript: activeText,
+              programmingLanguage: solutionLanguage,
+              userLanguage,
+            });
+          } catch (groqErr) {
+            console.warn('[LiveAudio] Groq request error, falling back to Gemini:', groqErr);
+            response = null;
+          }
+        }
+
+        // 2. Multimodal (with screenshots) or fallback -> Google Gemini 2.5 Flash
+        if (!response) {
+          console.log('[LiveAudio] Routing to Google Gemini 2.5 Flash...');
+          const imagePreviews = screenshots.map((s) => s.preview);
+          response = await geminiService.generateInterviewSolution({
+            apiKey: geminiApiKey,
+            model: geminiModel || 'gemini-2.5-flash',
+            transcript: activeText,
+            images: imagePreviews,
+            programmingLanguage: solutionLanguage,
+            userLanguage,
+          });
+        }
 
         setSolution(response);
         onAnswerSuccess?.();
-        showToast('Gemini Answer Ready', 'Instant verbal talking points & code generated.', 'success');
+        showToast('Answer Ready', 'Instant verbal talking points & code generated.', 'success');
       } catch (err) {
-        console.error('Error generating Gemini interview answer:', err);
-        const msg = err instanceof Error ? err.message : 'Failed to generate answer from Gemini';
+        console.error('Error generating interview answer:', err);
+        const msg = err instanceof Error ? err.message : 'Failed to generate answer';
         setError(msg);
-        showToast('Gemini Error', msg, 'error');
+        showToast('AI Error', msg, 'error');
       } finally {
         setIsAnswering(false);
         isAnsweringRef.current = false;
@@ -127,7 +160,7 @@ export const LiveAudioProvider: React.FC<LiveAudioProviderProps> = ({
         setError(errMsg);
       },
       onSilenceDetected: (fullQuestionText) => {
-        if (autoAnswerOnSilence !== false && !isAnsweringRef.current && fullQuestionText.length > 12) {
+        if (autoAnswerOnSilence !== false && !isAnsweringRef.current && fullQuestionText.length >= 6) {
           console.log('Auto-answering live interview question:', fullQuestionText);
           void askGeminiFromAudio(fullQuestionText);
         }
@@ -183,7 +216,7 @@ export const LiveAudioProvider: React.FC<LiveAudioProviderProps> = ({
   );
 };
 
-export const useLiveAudio = (): LiveAudioContextType => {
+export const useLiveAudio = () => {
   const context = useContext(LiveAudioContext);
   if (!context) {
     throw new Error('useLiveAudio must be used within a LiveAudioProvider');

@@ -4,6 +4,12 @@ export const DEFAULT_GEMINI_API_KEY =
   '';
 export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 
+export const DEFAULT_GROQ_API_KEY =
+  (typeof process !== 'undefined' && (process.env?.GROQ_API_KEY || process.env?.VITE_GROQ_API_KEY)) ||
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GROQ_API_KEY) ||
+  '';
+export const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
+
 /**
  * Check if running in self-hosted mode
  * In React: Uses import.meta.env.VITE_SELF_HOSTED_MODE
