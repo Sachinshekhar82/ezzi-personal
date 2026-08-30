@@ -29,11 +29,15 @@ const SubscribedAppContent: React.FC = () => {
     }
   }, [solutionState.solution]);
 
-  // Dynamically update the window size
+  // Dynamically update the window size smoothly without vibration
   useEffect(() => {
     if (!containerRef.current) {
       return;
     }
+
+    let timeoutId: any = null;
+    let lastWidth = 0;
+    let lastHeight = 0;
 
     const updateDimensions = () => {
       if (!containerRef.current) {
@@ -41,29 +45,28 @@ const SubscribedAppContent: React.FC = () => {
       }
       const height = containerRef.current.scrollHeight;
       const width = containerRef.current.scrollWidth;
-      window.electronAPI
-        ?.updateContentDimensions({ width, height, source: 'SubscribedApp' })
-        .catch(console.error);
+
+      if (Math.abs(height - lastHeight) < 8 && Math.abs(width - lastWidth) < 8) {
+        return;
+      }
+      lastWidth = width;
+      lastHeight = height;
+
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        window.electronAPI
+          ?.updateContentDimensions({ width, height, source: 'SubscribedApp' })
+          .catch(console.error);
+      }, 120);
     };
 
     const resizeObserver = new ResizeObserver(updateDimensions);
     resizeObserver.observe(containerRef.current);
-
-    // Also watch DOM changes
-    const mutationObserver = new MutationObserver(updateDimensions);
-    mutationObserver.observe(containerRef.current, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      characterData: true,
-    });
-
-    // Initial dimension update
     updateDimensions();
 
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       resizeObserver.disconnect();
-      mutationObserver.disconnect();
     };
   }, [view]);
 

@@ -34,20 +34,6 @@ export function useSolutions() {
     }
   };
 
-  const updateDimensions = () => {
-    if (contentRef.current) {
-      const contentHeight = contentRef.current.scrollHeight;
-      const contentWidth = contentRef.current.scrollWidth;
-      window.electronAPI
-        ?.updateContentDimensions({
-          width: contentWidth,
-          height: contentHeight,
-          source: 'useSolutions',
-        })
-        .catch(console.error);
-    }
-  };
-
   // Update local state when context solution changes
   useEffect(() => {
     if (solutionState.solution) {
@@ -63,19 +49,36 @@ export function useSolutions() {
   }, [solutionState.solution]);
 
   useEffect(() => {
+    let timeoutId: any = null;
+    let lastWidth = 0;
+    let lastHeight = 0;
+
+    const updateDimensions = () => {
+      if (!contentRef.current) return;
+      const height = contentRef.current.scrollHeight;
+      const width = contentRef.current.scrollWidth;
+
+      if (Math.abs(height - lastHeight) < 8 && Math.abs(width - lastWidth) < 8) {
+        return;
+      }
+      lastWidth = width;
+      lastHeight = height;
+
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        window.electronAPI
+          ?.updateContentDimensions({
+            width,
+            height,
+            source: 'useSolutions',
+          })
+          .catch(console.error);
+      }, 120);
+    };
+
     const resizeObserver = new ResizeObserver(updateDimensions);
     if (contentRef.current) {
       resizeObserver.observe(contentRef.current);
-    }
-
-    const mutationObserver = new MutationObserver(updateDimensions);
-    if (contentRef.current) {
-      mutationObserver.observe(contentRef.current, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        characterData: true,
-      });
     }
 
     updateDimensions();
@@ -134,8 +137,8 @@ export function useSolutions() {
     ];
 
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       resizeObserver.disconnect();
-      mutationObserver.disconnect();
       cleanupFunctions.forEach((cleanup) => {
         cleanup();
       });

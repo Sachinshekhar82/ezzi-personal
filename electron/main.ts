@@ -548,16 +548,21 @@ function setWindowDimensions(width: number, height: number, source: string): voi
     );
     console.log('[setWindowDimensions] newHeight:', newHeight);
 
+    // Prevent window oscillation / vibration: skip tiny changes under 10px
+    if (
+      Math.abs(currentBounds.width - newWidth) < 10 &&
+      Math.abs(currentBounds.height - newHeight) < 10
+    ) {
+      return;
+    }
+
     // Only adjust position if window would be completely off-screen
     let adjustedX = currentX;
     let adjustedY = currentY;
     if (isWindowCompletelyOffScreen(currentX, currentY, newWidth, newHeight)) {
       adjustedX = Math.max(0, (workArea.width - newWidth) / 2);
       adjustedY = Math.max(0, (workArea.height - newHeight) / 2);
-      console.log('[setWindowDimensions] Window off-screen, adjusted to:', adjustedX, adjustedY);
     }
-
-    console.log('[setWindowDimensions] setBounds:', adjustedX, adjustedY, newWidth, newHeight);
 
     state.mainWindow.setBounds({
       x: adjustedX,
